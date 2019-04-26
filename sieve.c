@@ -91,13 +91,17 @@ void freeList(struct node **Head, struct node **Tail) {
    (*Tail) = NULL;
 }
 
+void doSieve(struct node **Head, struct node **Tail) {
+
+}
+
 int main(int argc, char *argv[]) {
 
    /* Variable declarations */
    struct node *Head = NULL;
    struct node *Tail = NULL;
    clock_t start, end;
-   float createT, printT, freeT;
+   float createT, printT, freeT, sieveT;
 
    /* Declaration GMP variables and initialize them */
    mpz_t upperBound, loopIdx;
@@ -142,6 +146,12 @@ int main(int argc, char *argv[]) {
    end = clock();
    createT = (float)(end - start)/CLOCKS_PER_SEC;
 
+   /* Parse the list and remove nodes containing non-prime numbers */
+   start = clock();
+   doSieve(&Head, &Tail);
+   end = clock();
+   sieveT = (float)(end - start)/CLOCKS_PER_SEC;
+
    /* Print the final list of prime numbers */
    start = clock();
    printList(&Head, &Tail);
@@ -160,6 +170,7 @@ int main(int argc, char *argv[]) {
 
    /* Report execution time */
    printf("INFO: Time to initialize the list: %f seconds\n", createT);
+   printf("INFO: Time to sieve: %f seconds\n", sieveT);
    printf("INFO: Time to print: %f seconds\n", printT);
    printf("INFO: Time to free the list: %f seconds\n", freeT);
 
