@@ -7,7 +7,6 @@
 #define NUM_INPUTS 2
 #define VERSION_STR "0.1"
 #define BASE10 10
-#define LOWEST_PRIME 2
 #define DEBUG 1
 
 struct node {
@@ -15,45 +14,51 @@ struct node {
    struct node *next;
 };
 
+/******************************************************************************
+* 
+* Add "value" to a singly-linked list defined by Head and Tail pointers
+*   Returns: true on success. false on failure.
+*
+******************************************************************************/
 bool addToList(mpz_t value, struct node **Head, struct node **Tail) {
    struct node *this;
    this = malloc(sizeof(struct node *));
    if(this == NULL) { return(false); }
    mpz_init(this->value);
    mpz_set(this->value, value);
-
    if(*Head == NULL) {
       /* Add the first node to the list */
-      if(DEBUG) { printf("DEBUG: Adding first node\n"); }
       *Head = this;
       *Tail = this;
       this->next = NULL;
    }
    else {
       /* Add the new node to the end of the list */
-      if(DEBUG) { printf("DEBUG: Adding node to existing list\n"); }
       this->next = NULL;
       (*Tail)->next = this;
       *Tail = this;
    }
-
-   if(DEBUG) {
-      printf("DEBUG: Add to list ");
-      mpz_out_str(NULL, BASE10, this->value);
-      printf("   ");
-      mpz_out_str(NULL, BASE10, value);
-      printf("\n");
-   }
-
    return(true);
 }
 
+/******************************************************************************
+* 
+* Print the value stored in node pointed by "this"
+*  No return value
+*
+******************************************************************************/
 void printThisNode(struct node *this) {
    printf("   ");
    mpz_out_str(NULL, BASE10, this->value);
    printf("\n");
 }
 
+/******************************************************************************
+* 
+* Print the values stored in a list defined by Head and Tail pointers
+*  No return value
+*
+******************************************************************************/
 void printList(struct node **Head, struct node **Tail) {
    if(Head == NULL) { 
       printf("INFO: There are no primes on the list\n");
@@ -71,6 +76,12 @@ void printList(struct node **Head, struct node **Tail) {
    }
 }
 
+/******************************************************************************
+* 
+* Deallocated the list defined by Head and Tail pointers
+*  No return value
+*
+******************************************************************************/
 void freeList(struct node **Head, struct node **Tail) {
    struct node *this;
    this = *Head;
@@ -93,45 +104,27 @@ void freeList(struct node **Head, struct node **Tail) {
 
 /******************************************************************************
 * 
-* Function to move "this" pointer by N nodes along the list
+* Move "this" pointer by N nodes along the list
+*  Returns: true on success. false on failure.
 *
 ******************************************************************************/
-void move(struct node **prev, mpz_t N) {
+bool move(struct node **prev, mpz_t N) {
    mpz_t idx;
    mpz_init(idx);
    mpz_set_str(idx, "0", BASE10);
+
    while(mpz_cmp(idx, N) < 0) {
-      (*prev) = (*prev)->next;
-      mpz_add_ui(idx, idx, 1);
+      if((*prev)->next == NULL) {
+         mpz_clear(idx);
+         return(false);
+      }
+      else {
+         (*prev) = (*prev)->next;
+         mpz_add_ui(idx, idx, 1);
+      }
    }
    mpz_clear(idx);
-}
-
-/******************************************************************************
-*
-* Function to check if the I can make a new hop. This is done by testing if the 
-*   distance between "this" node and "Tail" node is less than "hopSize".
-*
-******************************************************************************/
-bool isNextHopValid(struct node *this, struct node *Tail, mpz_t hopSize) {
-   mpz_t thisValue, tailValue, diff;
-   mpz_init(thisValue);
-   mpz_init(tailValue);
-   mpz_init(diff);
-   bool retValue = false;
-
-   mpz_set(thisValue, this->value);
-   mpz_set(tailValue, Tail->value);
-   mpz_sub(diff, tailValue, thisValue);
-
-   if(mpz_cmp(diff, hopSize) > 0) { retValue = true; }
-
-   /* Free the GMP variables before returning */
-   mpz_clear(thisValue);
-   mpz_clear(tailValue);
-   mpz_clear(diff);
-
-   return(retValue);
+   return(true);
 }
 
 /******************************************************************************
@@ -152,48 +145,31 @@ void doSieve(struct node **Head, struct node **Tail) {
       next = thisIter;
       /* How many nodes should I hop? */
       mpz_set(hopSize, thisIter->value);
-      printf("DEBUG: thisIter value is ");
-      mpz_out_str(NULL, BASE10, hopSize);
       mpz_sub_ui(hopSize_1, hopSize, 1);
-      if(DEBUG) {
-         printf("DEBUG: thisIter/prev/next   ");
-         mpz_out_str(NULL, BASE10, thisIter->value);
-         printf("  ");
-         mpz_out_str(NULL, BASE10, prev->value);
-         printf("  ");
-         mpz_out_str(NULL, BASE10, next->value);
-         printf("\n");
-      }
-      while(isNextHopValid(prev, *Tail, hopSize)) {
+      while(true) {
          /* Move next by hopSize and prev by hopSize-1 */
-         move(&prev, hopSize_1);
-         next = prev->next;
-         if(DEBUG) {
-            printf("DEBUG: thisIter/prev/next   ");
-            mpz_out_str(NULL, BASE10, thisIter->value);
-            printf("  ");
-            mpz_out_str(NULL, BASE10, prev->value);
-            printf("  ");
-            mpz_out_str(NULL, BASE10, next->value);
+         if(move(&prev, hopSize_1)) {
+            /* If prev is on the last node, quit this loop */
+            if(prev == *Tail) { break; }
+            else { next = prev->next; }
+            /* If next is on the last node, remove this node and quit the loop */
+            if(next == *Tail) { 
+               prev->next = NULL;
+               *Tail = prev;
+               mpz_clear(next->value);
+               free(next);
+               break; 
+            }
+            /* Remove the node pointed by next from the list */
+            prev->next = next->next;
+            next->next = NULL;
+            mpz_clear(next->value);
+            free(next);
+            next = prev->next;
          }
-         /* Remove the node pointed by next from the list */
-         prev->next = next->next;
-         next->next = NULL;
-         mpz_clear(next->value);
-         free(next);
-         next = prev->next;
-         if(DEBUG) {
-            printf("\nDEBUG: thisIter/prev/next   ");
-            mpz_out_str(NULL, BASE10, thisIter->value);
-            printf("  ");
-            mpz_out_str(NULL, BASE10, prev->value);
-            printf("  ");
-            mpz_out_str(NULL, BASE10, next->value);         
-            printf("\n\n\n");
-         }
+         else { break; }
       }
-      break;
-      thisIter = thisIter->next;
+      if(thisIter->next != NULL) { thisIter = thisIter->next; }
    }
 }
 
@@ -219,14 +195,12 @@ int main(int argc, char *argv[]) {
    printf("Sieve of Eratosthenes v%s\n", VERSION_STR);
    printf("Written by Sarrvesh S. Sridhar\n\n");
 
-   if(DEBUG) {
-      printf("DEBUG: Compiled with GNU MP version %d.%d\n",
+   printf("DEBUG: Compiled with GNU MP version %d.%d\n",
              __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
-      printf("DEBUG: GNU MP built with %s using flags:\n", __GMP_CC);
-      printf("   ");
-      puts(__GMP_CFLAGS);
-      printf("\n");
-   }
+   printf("DEBUG: GNU MP built with %s using flags:\n", __GMP_CC);
+   printf("   ");
+   puts(__GMP_CFLAGS);
+   printf("\n");
 
    /* Parse the command line input */
    if(argc != NUM_INPUTS) {
@@ -236,12 +210,6 @@ int main(int argc, char *argv[]) {
    }
    /* Create a GMP type for input upperBound */
    mpz_set_str(upperBound, argv[1], BASE10);
-
-   if(DEBUG) {
-      printf("DEBUG: Input value is ");
-      mpz_out_str(NULL, BASE10, upperBound);
-      printf("\n");
-   }
 
    /* Initialize the list */
    start = clock();
