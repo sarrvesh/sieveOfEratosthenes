@@ -8,7 +8,7 @@
 #define VERSION_STR "0.1"
 #define BASE10 10
 #define LOWEST_PRIME 2
-#define DEBUG 0
+#define DEBUG 1
 
 struct node {
    mpz_t value;
@@ -91,10 +91,117 @@ void freeList(struct node **Head, struct node **Tail) {
    (*Tail) = NULL;
 }
 
-void doSieve(struct node **Head, struct node **Tail) {
-
+/******************************************************************************
+* 
+* Function to move "this" pointer by N nodes along the list
+*
+******************************************************************************/
+void move(struct node **prev, mpz_t N) {
+   mpz_t idx;
+   mpz_init(idx);
+   mpz_set_str(idx, "0", BASE10);
+   while(mpz_cmp(idx, N) < 0) {
+      (*prev) = (*prev)->next;
+      mpz_add_ui(idx, idx, 1);
+   }
+   mpz_clear(idx);
 }
 
+/******************************************************************************
+*
+* Function to check if the I can make a new hop. This is done by testing if the 
+*   distance between "this" node and "Tail" node is less than "hopSize".
+*
+******************************************************************************/
+bool isNextHopValid(struct node *this, struct node *Tail, mpz_t hopSize) {
+   mpz_t thisValue, tailValue, diff;
+   mpz_init(thisValue);
+   mpz_init(tailValue);
+   mpz_init(diff);
+   bool retValue = false;
+
+   mpz_set(thisValue, this->value);
+   mpz_set(tailValue, Tail->value);
+   mpz_sub(diff, tailValue, thisValue);
+
+   if(mpz_cmp(diff, hopSize) > 0) { retValue = true; }
+
+   /* Free the GMP variables before returning */
+   mpz_clear(thisValue);
+   mpz_clear(tailValue);
+   mpz_clear(diff);
+
+   return(retValue);
+}
+
+/******************************************************************************
+*
+* Apply the sieve to a node represented by the Head and the Tail pointers.
+*  By this function ends, the list should only contain prime numbers.
+*
+******************************************************************************/
+void doSieve(struct node **Head, struct node **Tail) {
+   mpz_t hopSize, hopSize_1;
+   mpz_init(hopSize);
+   mpz_init(hopSize_1);
+   struct node *thisIter, *prev, *next;
+   thisIter = *Head;
+   /* Loop over each node and remove the node.value'th nodes */
+   while(thisIter != *Tail) {
+      prev = thisIter;
+      next = thisIter;
+      /* How many nodes should I hop? */
+      mpz_set(hopSize, thisIter->value);
+      printf("DEBUG: thisIter value is ");
+      mpz_out_str(NULL, BASE10, hopSize);
+      mpz_sub_ui(hopSize_1, hopSize, 1);
+      if(DEBUG) {
+         printf("DEBUG: thisIter/prev/next   ");
+         mpz_out_str(NULL, BASE10, thisIter->value);
+         printf("  ");
+         mpz_out_str(NULL, BASE10, prev->value);
+         printf("  ");
+         mpz_out_str(NULL, BASE10, next->value);
+         printf("\n");
+      }
+      while(isNextHopValid(prev, *Tail, hopSize)) {
+         /* Move next by hopSize and prev by hopSize-1 */
+         move(&prev, hopSize_1);
+         next = prev->next;
+         if(DEBUG) {
+            printf("DEBUG: thisIter/prev/next   ");
+            mpz_out_str(NULL, BASE10, thisIter->value);
+            printf("  ");
+            mpz_out_str(NULL, BASE10, prev->value);
+            printf("  ");
+            mpz_out_str(NULL, BASE10, next->value);
+         }
+         /* Remove the node pointed by next from the list */
+         prev->next = next->next;
+         next->next = NULL;
+         mpz_clear(next->value);
+         free(next);
+         next = prev->next;
+         if(DEBUG) {
+            printf("\nDEBUG: thisIter/prev/next   ");
+            mpz_out_str(NULL, BASE10, thisIter->value);
+            printf("  ");
+            mpz_out_str(NULL, BASE10, prev->value);
+            printf("  ");
+            mpz_out_str(NULL, BASE10, next->value);         
+            printf("\n\n\n");
+         }
+      }
+      break;
+      thisIter = thisIter->next;
+   }
+}
+
+/******************************************************************************
+* 
+* Main function
+*
+******************************************************************************/
 int main(int argc, char *argv[]) {
 
    /* Variable declarations */
