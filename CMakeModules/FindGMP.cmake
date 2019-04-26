@@ -7,9 +7,6 @@ if(NOT GMP_FOUND)
       gmp 
       HINTS ${GMP_ROOT_DIR} 
       PATH_SUFFIXES lib)
-   message("GMP_INCLUDES=${GMP_INCLUDES}")
-   message("GMP_LIBRARY=${GMP_LIBRARIES}")
-   message("GMP_FOUND=${GMP_FOUND}")
    
    include(FindPackageHandleStandardArgs)
    find_package_handle_standard_args(GMP DEGAULT_MSG 
