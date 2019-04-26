@@ -43,10 +43,10 @@ bool addToList(mpz_t value, struct node **Head, struct node **Tail) {
 /******************************************************************************
 * 
 * Print the values stored in a list defined by Head and Tail pointers
-*  No return value
+*  Returns: number of primes in the list
 *
 ******************************************************************************/
-void printList(struct node **Head, struct node **Tail, FILE **fp) {
+void printList(struct node **Head, struct node **Tail, FILE **fp, mpz_t nPrimes) {
    if(Head == NULL) { 
       printf("INFO: There are no primes on the list\n");
    }
@@ -58,6 +58,7 @@ void printList(struct node **Head, struct node **Tail, FILE **fp) {
          mpz_out_str(*fp, BASE10, this->value);
          fprintf(*fp, "\n");
          this = this->next;
+         mpz_add_ui(nPrimes, nPrimes, 1);
       }
       /* The last node still needs to be printed */
       mpz_out_str(*fp, BASE10, this->value);
@@ -177,9 +178,10 @@ int main(int argc, char *argv[]) {
    FILE *fp = NULL;
 
    /* Declaration GMP variables and initialize them */
-   mpz_t upperBound, loopIdx;
+   mpz_t upperBound, loopIdx, nPrimes;
    mpz_init(upperBound);
    mpz_init(loopIdx);
+   mpz_init(nPrimes);
 
    printf("\n");
    printf("Sieve of Eratosthenes v%s\n", VERSION_STR);
@@ -226,7 +228,10 @@ int main(int argc, char *argv[]) {
 
    /* Print the final list of prime numbers */
    start = clock();
-   printList(&Head, &Tail, &fp);
+   printList(&Head, &Tail, &fp, nPrimes);
+   printf("INFO: Found ");
+   mpz_out_str(NULL, BASE10, nPrimes);
+   printf(" primes less than %s\n", argv[1]);
    fclose(fp);
    end = clock();
    printT = (float)(end - start)/CLOCKS_PER_SEC;
@@ -240,6 +245,7 @@ int main(int argc, char *argv[]) {
    /* Clear the GMP variables */
    mpz_clear(upperBound);
    mpz_clear(loopIdx);
+   mpz_clear(nPrimes);
 
    /* Report execution time */
    printf("INFO: Time to initialize the list: %f seconds\n", createT);
