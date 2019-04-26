@@ -4,10 +4,9 @@
 #include <time.h>
 #include <gmp.h>
 
-#define NUM_INPUTS 2
+#define NUM_INPUTS 3
 #define VERSION_STR "0.1"
 #define BASE10 10
-#define DEBUG 1
 
 struct node {
    mpz_t value;
@@ -43,36 +42,26 @@ bool addToList(mpz_t value, struct node **Head, struct node **Tail) {
 
 /******************************************************************************
 * 
-* Print the value stored in node pointed by "this"
-*  No return value
-*
-******************************************************************************/
-void printThisNode(struct node *this) {
-   printf("   ");
-   mpz_out_str(NULL, BASE10, this->value);
-   printf("\n");
-}
-
-/******************************************************************************
-* 
 * Print the values stored in a list defined by Head and Tail pointers
 *  No return value
 *
 ******************************************************************************/
-void printList(struct node **Head, struct node **Tail) {
+void printList(struct node **Head, struct node **Tail, FILE **fp) {
    if(Head == NULL) { 
       printf("INFO: There are no primes on the list\n");
    }
    else {
       struct node *this;
       this = *Head;
-      printf("INFO: List of primes:\n");
+      if(fp == NULL) { printf("INFO: List of primes:\n"); }
       while(this->next != NULL) {
-         printThisNode(this);
+         mpz_out_str(*fp, BASE10, this->value);
+         fprintf(*fp, "\n");
          this = this->next;
       }
       /* The last node still needs to be printed */
-      printThisNode(this);
+      mpz_out_str(*fp, BASE10, this->value);
+      fprintf(*fp, "\n");
    }
 }
 
@@ -185,6 +174,7 @@ int main(int argc, char *argv[]) {
    struct node *Tail = NULL;
    clock_t start, end;
    float createT, printT, freeT, sieveT;
+   FILE *fp = NULL;
 
    /* Declaration GMP variables and initialize them */
    mpz_t upperBound, loopIdx;
@@ -203,13 +193,19 @@ int main(int argc, char *argv[]) {
    printf("\n");
 
    /* Parse the command line input */
-   if(argc != NUM_INPUTS) {
+   if((argc != NUM_INPUTS)) {
       printf("ERROR: Invalid command line input. Terminating execution!\n");
-      printf("Usage: %s <limit>\n\n", argv[0]);
+      printf("Usage: %s <limit> <output file name>\n\n", argv[0]);
       exit(1);
    }
-   /* Create a GMP type for input upperBound */
+      
+   /* Read command line input */
    mpz_set_str(upperBound, argv[1], BASE10);
+   fp = fopen(argv[2], "w+");
+   if(fp == NULL) {
+      printf("ERROR: Unable to open the specified output file\n\n");
+      exit(1);
+   }
 
    /* Initialize the list */
    start = clock();
@@ -229,7 +225,8 @@ int main(int argc, char *argv[]) {
 
    /* Print the final list of prime numbers */
    start = clock();
-   printList(&Head, &Tail);
+   printList(&Head, &Tail, &fp);
+   fclose(fp);
    end = clock();
    printT = (float)(end - start)/CLOCKS_PER_SEC;
 
