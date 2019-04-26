@@ -219,6 +219,7 @@ int main(int argc, char *argv[]) {
 
    /* Parse the list and remove nodes containing non-prime numbers */
    start = clock();
+   printf("INFO: Generating primes... Please wait\n");
    doSieve(&Head, &Tail);
    end = clock();
    sieveT = (float)(end - start)/CLOCKS_PER_SEC;
