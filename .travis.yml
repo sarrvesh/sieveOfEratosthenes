@@ -1,0 +1,11 @@
+language: c
+compiler: gcc
+
+os: linux
+
+before_install:
+    - sudo apt-get update
+    - sudo apt-get install -y libgmp3-dev
+
+scripts:
+    - cmake CMakeLists.txt
